@@ -3,10 +3,14 @@
 import java.net.*;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.zip.CRC32;
 
 /**
  *
- * You may assume that underlying transmission channel is perfect and all data will be received in good order.
+ * Modified to transfer over unreliable channel.
  *
  */
 
@@ -33,8 +37,8 @@ class FileSender {
         InetAddress serverAddress = InetAddress.getByName(host);
         int portNumber = Integer.parseInt(port);
 
-        // Opening the file
-        byte[] buffer = new byte[1000];
+        // Creating the payload buffer
+        byte[] buffer = new byte[988];
 
         // File input
         FileInputStream fis = new FileInputStream(fileToOpen);
@@ -49,7 +53,12 @@ class FileSender {
         int counter = 0;
         int len;
         while ((len = bis.read(buffer)) > 0) {
-            DatagramPacket sendPkt = new DatagramPacket(buffer, len, serverAddress, portNumber);
+            // Creating the byte[] array
+            byte[] sendBuffer = createPacket(buffer, 0);
+
+            // Form the packet to be sent out
+            DatagramPacket sendPkt = new DatagramPacket(sendBuffer, len, serverAddress, portNumber);
+
             clientSocket.send(sendPkt);
             Thread.sleep(5);
 
@@ -57,7 +66,7 @@ class FileSender {
             // System.out.println("packet sent " + counter + ", packet length: " + len);
             //counter++;
         }
-        bis.close();
+        bis.close(); // VERY important to close, or else the received file will have extra bytes
 
         // Send empty packet, signify file transfer end
         DatagramPacket emptyPkt = new DatagramPacket(buffer, 0, serverAddress, portNumber);
@@ -65,4 +74,36 @@ class FileSender {
 
         System.out.println("File transfer completed");
     }
+
+    public byte[] createPacket(byte[] payload, int sequenceNumber) {
+        // Creates the ByteBuffer
+        ByteBuffer output = ByteBuffer.allocate(1000);
+
+        // Calculates checksum of payload
+        CRC32 crc = new CRC32();
+        crc.update(payload);
+        long checksum = crc.getValue();
+
+        // Puts the checksum, followed by sequenceNumber, then payload
+        output.putLong(checksum);
+        output.putInt(sequenceNumber);
+        output.put(payload);
+
+        return output.array();
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
