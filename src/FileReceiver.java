@@ -3,8 +3,12 @@
 import java.io.*;
 import java.net.*;
 import java.net.DatagramSocket;
+import java.nio.ByteBuffer;
+import java.util.zip.CRC32;
 
 class FileReceiver {
+    private final static int PAYLOAD_SIZE = 888;
+
 
     public static void main(String[] args) throws Exception {
 
@@ -25,14 +29,57 @@ class FileReceiver {
         // Declarations
         byte[] rcvBuffer = new byte[1000];
         DatagramSocket serverSocket = new DatagramSocket(portNumber);
-        String fileName = getFileNameFromPacket(serverSocket);
-        FileOutputStream fos = new FileOutputStream(fileName, false);
-        BufferedOutputStream bos = new BufferedOutputStream(fos);
 
+
+//        String fileName = getFileNameFromPacket(serverSocket);
+//        FileOutputStream fos = new FileOutputStream(fileName, false);
+//        BufferedOutputStream bos = new BufferedOutputStream(fos);
+
+        boolean setToZero = false;
+        int sequenceNumber = 0;
         while (true){
+            // Alternate the sequence number
+            if (setToZero) {
+                sequenceNumber = 0;
+            } else {
+                sequenceNumber = 1;
+            }
+
             DatagramPacket receivedPacket = receivePacket(rcvBuffer, serverSocket);
+
+            // Extract information from the packet
+            byte[] packetData = receivedPacket.getData();
+            ByteBuffer dataWrapper = ByteBuffer.wrap(packetData);
+            long checksum = dataWrapper.getLong();
+            int receivedSequenceNumber = dataWrapper.getInt();
+            byte[] fileNameBytes = new byte[100];
+            dataWrapper.get(fileNameBytes);
+            String fileName = new String(fileNameBytes);
+            int fileNameLength = dataWrapper.getInt();
+            byte[] payload = new byte[PAYLOAD_SIZE];
+            dataWrapper.get(payload);
+
+            // Checksum
+            CRC32 crc = new CRC32();
+            crc.update(payload);
+            long calcChecksum = crc.getValue();
+
+            // Verification
+            // If valid
+                // Check if file exist
+                // If doesn't exist, create file and write to it
+                // If exists, write to it
+            // If invalid
+                // Send ACK of the currentSequence number
+
+            // code
+            // If valid, check for termination, then write
+            // If not valid, send ACK for previous packet
+
             checkForTermination(receivedPacket);
-            writePacketToOutputStream(receivedPacket, bos);
+//            writePacketToOutputStream(receivedPacket, bos);
+
+
         }
     }
 

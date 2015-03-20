@@ -38,7 +38,7 @@ public class ByteB {
         // Receiving
         ByteBuffer wrapper = ByteBuffer.wrap(buffer);
 
-        byte[] receivedData = new byte[32];
+        byte[] receivedData = new byte[1000];
 //        wrapper.get(receivedData);
 
         long foo = wrapper.getLong();
