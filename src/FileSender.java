@@ -94,7 +94,7 @@ class FileSender {
 
             // Wait for ACK
             byte[] ackBuffer = new byte[1];
-            DatagramPacket ack = new DatagramPacket(ackBuffer, ackBuffer.length);
+            DatagramPacket ack = new DatagramPacket(ackBuffer, ackBuffer.length, serverAddress, portNumber);
             clientSocket.receive(ack);
 
             // Verify ACK

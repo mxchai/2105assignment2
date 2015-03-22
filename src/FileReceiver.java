@@ -31,6 +31,8 @@ class FileReceiver {
         byte[] rcvBuffer = new byte[1000];
         DatagramSocket serverSocket = new DatagramSocket(portNumber);
 
+        DatagramSocket sendingSocket = new DatagramSocket();
+
 
 //        String fileName = getFileNameFromPacket(serverSocket);
 //        FileOutputStream fos = new FileOutputStream(fileName, false);
@@ -85,7 +87,10 @@ class FileReceiver {
             } else {
                 // If invalid
                 // Send ACK of the currentSequence number
-                DatagramPacket ack = createAck(sequenceNumber);
+                InetAddress senderAddress = receivedPacket.getAddress();
+                int senderPort = receivedPacket.getPort();
+
+                DatagramPacket ack = createAck(sequenceNumber, senderAddress, senderPort);
                 serverSocket.send(ack);
             }
 
@@ -96,7 +101,7 @@ class FileReceiver {
         }
     }
 
-    private DatagramPacket createAck(int sequenceNumber) {
+    private DatagramPacket createAck(int sequenceNumber, InetAddress senderAddress, int senderPort) {
         // Init the ByteBuffer
         ByteBuffer buffer = ByteBuffer.allocate(4);
         buffer.putInt(sequenceNumber);
