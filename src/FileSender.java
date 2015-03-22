@@ -16,7 +16,7 @@ import java.util.zip.CRC32;
 class FileSender {
 
     private final static int MAX_BUFFER_SIZE = 1000;
-    private final static int PAYLOAD_SIZE = 888;
+    private final static int PAYLOAD_SIZE = 884;
     private final static int DATA_SIZE = 992; // Seq num + name + name.length + payload size
     private final static long TIMEOUT = 1000;
     private final static long RE_TIMEOUT = 1;
@@ -71,16 +71,16 @@ class FileSender {
             }
 
             // Creating the byte[] array
-            byte[] sendBuffer = createByteArray(buffer, sequenceNumber, fileToOpen);
+            byte[] sendBuffer = createByteArray(buffer, sequenceNumber, rcvFileName);
 
             // Form the packet to be sent out
             final DatagramPacket sendPkt = new DatagramPacket(sendBuffer, len, serverAddress, portNumber);
 
-            // DEBUG
-//            extractDatagramData(sendPkt);
-
             // Send out the packet
             clientSocket.send(sendPkt);
+
+            // DEBUG. Inspect the packet that was sent out
+            extractDatagramData(sendPkt);
 
             // Start timer
             Timer timer = new Timer();
@@ -118,6 +118,9 @@ class FileSender {
             setToZero ^= true;
 
             // DEBUG
+            System.out.println("========================");
+            System.out.println("DIAGNOSIS");
+            System.out.println("========================");
             System.out.println("packet sent " + counter + ", payload length: " + len);
             counter++;
         }
@@ -140,6 +143,7 @@ class FileSender {
         // Puts the sequenceNumber, fileName, fileName length, payload
         output.putInt(sequenceNumber);
         output.put(fileName.getBytes());
+        output.position(104); // shift it downwards
         output.putInt(fileName.length());
         output.put(payload);
 
@@ -151,10 +155,12 @@ class FileSender {
         CRC32 crc = new CRC32();
         crc.update(data);
         long checksum = crc.getValue();
-        output.position(DATA_SIZE);
         output.putLong(checksum);
 
         // DEBUG
+        System.out.println("========================");
+        System.out.println("SENT PACKET");
+        System.out.println("========================");
         System.out.println("Sequence number: " + sequenceNumber);
         System.out.println("File name: " + fileName);
         System.out.println("File name length: " + fileName.length());
@@ -164,28 +170,30 @@ class FileSender {
     }
 
     public void extractDatagramData(DatagramPacket dp) {
-        // Declarations
-        ByteBuffer wrapper = ByteBuffer.allocate(MAX_BUFFER_SIZE);
-
         // Wrap the byte array with ByteBuffer
         byte[] dpData = dp.getData();
-        wrapper.wrap(dpData);
+        ByteBuffer wrapper = ByteBuffer.wrap(dpData);
 
         // Extracting the information
         int receivedSequenceNumber = wrapper.getInt();
         byte[] fileNameBytes = new byte[100];
         wrapper.get(fileNameBytes);
-        String fileName = new String(fileNameBytes);
-
         int fileNameLength = wrapper.getInt();
 
+        String fileName = new String(fileNameBytes, 0, fileNameLength);
+
         byte[] payload = new byte[PAYLOAD_SIZE];
+        wrapper.get(payload);
 
         long checksum = wrapper.getLong();
 
+        System.out.println("========================");
+        System.out.println("INSPECTED PACKET");
+        System.out.println("========================");
+        System.out.println("Size of byte array: " + dpData.length);
         System.out.println("Sequence number: " + receivedSequenceNumber);
         System.out.println("File name: " + fileName);
-        System.out.println("File name length: " + fileName.length());
+        System.out.println("File name length: " + fileNameLength);
         System.out.println("Checksum: " + checksum);
     }
 

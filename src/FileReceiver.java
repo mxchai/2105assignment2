@@ -7,11 +7,13 @@ import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 
 class FileReceiver {
-    private final static int PAYLOAD_SIZE = 888;
+    private final static int MAX_BUFFER_SIZE = 1000;
+    private final static int DATA_SIZE = 992; // Seq num + name + name.length + payload size
+    private final static int PAYLOAD_SIZE = 884;
+
     private FileOutputStream fos;
     private BufferedOutputStream bos;
 
-    private final static int DATA_SIZE = 992; // Seq num + name + name.length + payload size
 
     public static void main(String[] args) throws Exception {
 
@@ -30,7 +32,7 @@ class FileReceiver {
         printWelcomeMessage(portNumber);
 
         // Declarations
-        byte[] rcvBuffer = new byte[1000];
+        byte[] rcvBuffer = new byte[MAX_BUFFER_SIZE];
         DatagramSocket serverSocket = new DatagramSocket(portNumber);
 
         DatagramSocket sendingSocket = new DatagramSocket();
@@ -56,34 +58,46 @@ class FileReceiver {
 
             DatagramPacket receivedPacket = receivePacket(rcvBuffer, serverSocket);
 
+            // DEBUG
+//            extractDatagramData(receivedPacket);
+
             // Extract information from the packet
-            byte[] packetData = receivedPacket.getData();
+            // Wrap the byte array with ByteBuffer
+            byte[] dpData = receivedPacket.getData();
+            ByteBuffer wrapper = ByteBuffer.wrap(dpData);
 
-            ByteBuffer dataWrapper = ByteBuffer.wrap(packetData);
-
-            int receivedSequenceNumber = dataWrapper.getInt();
+            // Extracting the information
+            int receivedSequenceNumber = wrapper.getInt();
             byte[] fileNameBytes = new byte[100];
-            dataWrapper.get(fileNameBytes);
-            String fileName = new String(fileNameBytes);
+            wrapper.get(fileNameBytes);
+            int fileNameLength = wrapper.getInt();
 
-            int fileNameLength = dataWrapper.getInt();
+            String fileName = new String(fileNameBytes, 0, fileNameLength);
 
             byte[] payload = new byte[PAYLOAD_SIZE];
+            wrapper.get(payload);
 
-            long checksum = dataWrapper.getLong();
+            long checksum = wrapper.getLong();
 
             // Checksum
-            byte[] verify = new byte[DATA_SIZE];
-            dataWrapper.position(0);
-            dataWrapper.get(verify, 0, DATA_SIZE);
+//            byte[] verify = new byte[DATA_SIZE];
+//            wrapper.position(0);
+//            wrapper.get(verify);
+//
+//            CRC32 crc = new CRC32();
+//            crc.update(verify);
+//            long calcChecksum = crc.getValue();
 
-            CRC32 crc = new CRC32();
-            crc.update(verify);
-            long calcChecksum = crc.getValue();
+            long calcChecksum = 1;
 
-            System.out.println(fileName);
-
-            System.out.println("Original: " + checksum);
+            System.out.println("========================");
+            System.out.println("INSPECTED PACKET");
+            System.out.println("========================");
+            System.out.println("Size of byte array: " + dpData.length);
+            System.out.println("Sequence number: " + receivedSequenceNumber);
+            System.out.println("File name: " + fileName);
+            System.out.println("File name length: " + fileNameLength);
+            System.out.println("Checksum: " + checksum);
             System.out.println("Calculated: " + calcChecksum);
 
 
@@ -133,6 +147,34 @@ class FileReceiver {
 
 
         }
+    }
+
+    public void extractDatagramData(DatagramPacket dp) {
+        // Wrap the byte array with ByteBuffer
+        byte[] dpData = dp.getData();
+        ByteBuffer wrapper = ByteBuffer.wrap(dpData);
+
+        // Extracting the information
+        int receivedSequenceNumber = wrapper.getInt();
+        byte[] fileNameBytes = new byte[100];
+        wrapper.get(fileNameBytes);
+        int fileNameLength = wrapper.getInt();
+
+        String fileName = new String(fileNameBytes, 0, fileNameLength);
+
+        byte[] payload = new byte[PAYLOAD_SIZE];
+        wrapper.get(payload);
+
+        long checksum = wrapper.getLong();
+
+        System.out.println("========================");
+        System.out.println("INSPECTED PACKET");
+        System.out.println("========================");
+        System.out.println("Size of byte array: " + dpData.length);
+        System.out.println("Sequence number: " + receivedSequenceNumber);
+        System.out.println("File name: " + fileName);
+        System.out.println("File name length: " + fileNameLength);
+        System.out.println("Checksum: " + checksum);
     }
 
     private DatagramPacket createAck(int sequenceNumber, InetAddress senderAddress, int senderPort) {
@@ -233,3 +275,18 @@ class FileReceiver {
     }
 
 }
+
+//            byte[] packetData = receivedPacket.getData();
+//
+//            ByteBuffer dataWrapper = ByteBuffer.wrap(packetData);
+//
+//            int receivedSequenceNumber = dataWrapper.getInt();
+//            byte[] fileNameBytes = new byte[100];
+//            dataWrapper.get(fileNameBytes);
+//            String fileName = new String(fileNameBytes);
+//
+//            int fileNameLength = dataWrapper.getInt();
+//
+//            byte[] payload = new byte[PAYLOAD_SIZE];
+//
+//            long checksum = dataWrapper.getLong();
