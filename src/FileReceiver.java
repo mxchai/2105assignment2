@@ -90,13 +90,29 @@ class FileReceiver {
 
                 bos = getBufferedOutputStream(fileName);
                 writePacketToOutputStream(payload, bos);
-            } else {
-                // If invalid
-                // Send ACK of the currentSequence number
+
+                // Send ack of received packet
                 InetAddress senderAddress = receivedPacket.getAddress();
                 int senderPort = receivedPacket.getPort();
 
                 DatagramPacket ack = createAck(sequenceNumber, senderAddress, senderPort);
+                serverSocket.send(ack);
+
+            } else {
+                // If invalid
+                // Send ACK of the next sequence number
+                InetAddress senderAddress = receivedPacket.getAddress();
+                int senderPort = receivedPacket.getPort();
+
+                int flippedSequenceNum;
+
+                if (sequenceNumber == 0) {
+                    flippedSequenceNum = 1;
+                } else {
+                    flippedSequenceNum = 0;
+                }
+
+                DatagramPacket ack = createAck(flippedSequenceNum, senderAddress, senderPort);
                 serverSocket.send(ack);
             }
 
