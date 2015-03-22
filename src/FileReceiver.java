@@ -8,7 +8,8 @@ import java.util.zip.CRC32;
 
 class FileReceiver {
     private final static int PAYLOAD_SIZE = 888;
-
+    private FileOutputStream fos;
+    private BufferedOutputStream bos;
 
     public static void main(String[] args) throws Exception {
 
@@ -35,8 +36,12 @@ class FileReceiver {
 //        FileOutputStream fos = new FileOutputStream(fileName, false);
 //        BufferedOutputStream bos = new BufferedOutputStream(fos);
 
+
+        // ================================================================
+        // Main Loop
+        // ================================================================
         boolean setToZero = false;
-        int sequenceNumber = 0;
+        int sequenceNumber;
         while (true){
             // Alternate the sequence number
             if (setToZero) {
@@ -49,15 +54,19 @@ class FileReceiver {
 
             // Extract information from the packet
             byte[] packetData = receivedPacket.getData();
+
             ByteBuffer dataWrapper = ByteBuffer.wrap(packetData);
-            long checksum = dataWrapper.getLong();
+
             int receivedSequenceNumber = dataWrapper.getInt();
             byte[] fileNameBytes = new byte[100];
             dataWrapper.get(fileNameBytes);
             String fileName = new String(fileNameBytes);
+
             int fileNameLength = dataWrapper.getInt();
+
             byte[] payload = new byte[PAYLOAD_SIZE];
-            dataWrapper.get(payload);
+
+            long checksum = dataWrapper.getLong();
 
             // Checksum
             CRC32 crc = new CRC32();
@@ -66,21 +75,54 @@ class FileReceiver {
 
             // Verification
             // If valid
+            if (checksum == calcChecksum) {
                 // Check if file exist
                 // If doesn't exist, create file and write to it
                 // If exists, write to it
-            // If invalid
-                // Send ACK of the currentSequence number
 
-            // code
+                bos = getBufferedOutputStream(fileName);
+                writePacketToOutputStream(payload, bos);
+            } else {
+                // If invalid
+                // Send ACK of the currentSequence number
+                DatagramPacket ack = createAck(sequenceNumber);
+                serverSocket.send(ack);
+            }
+
             // If valid, check for termination, then write
             // If not valid, send ACK for previous packet
 
             checkForTermination(receivedPacket);
-//            writePacketToOutputStream(receivedPacket, bos);
-
-
         }
+    }
+
+    private DatagramPacket createAck(int sequenceNumber) {
+        // Init the ByteBuffer
+        ByteBuffer buffer = ByteBuffer.allocate(1);
+        buffer.putInt(sequenceNumber);
+
+        byte[] ackBuffer = buffer.array();
+        DatagramPacket ack = new DatagramPacket(ackBuffer, ackBuffer.length);
+
+        return ack;
+    }
+
+
+    // Note: this method has the side-effect of setting bos!
+    private BufferedOutputStream getBufferedOutputStream(String fileName) {
+        // If bos is set, return bos
+        if (bos != null) {
+            return bos;
+        } else {
+            // If bos is not set, create fos and bos and set them
+            try {
+                fos = new FileOutputStream(fileName, false);
+                bos = new BufferedOutputStream(fos);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return bos;
     }
 
 
@@ -95,9 +137,23 @@ class FileReceiver {
         return receivedPacket;
     }
 
+    // Writing from a DatagramPacket
     private void writePacketToOutputStream(DatagramPacket receivedPacket, BufferedOutputStream bos){
         try {
             bos.write(receivedPacket.getData(), 0, receivedPacket.getLength());
+            // DEBUG
+            //System.out.println("packet length: " + receivedPacket.getLength());
+            bos.flush();
+        } catch (Exception e){
+            System.out.println("File cannot be written to output stream.");
+        }
+
+    }
+
+    // Writing from a byte[]
+    private void writePacketToOutputStream(byte[] byteArray, BufferedOutputStream bos){
+        try {
+            bos.write(byteArray, 0, byteArray.length);
             // DEBUG
             //System.out.println("packet length: " + receivedPacket.getLength());
             bos.flush();

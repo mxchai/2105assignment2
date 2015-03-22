@@ -55,11 +55,13 @@ class FileSender {
 //        DatagramPacket fileNamePkt = new DatagramPacket(fileName, fileName.length, serverAddress, portNumber);
 //        clientSocket.send(fileNamePkt);
 
-        // Sending each datagram
+        // ================================================================
+        // Main Loop
+        // ================================================================
         int counter = 0;
         int len;
-        boolean setToZero = false;
-        int sequenceNumber = 0;
+        boolean setToZero = true;
+        int sequenceNumber;
         while ((len = bis.read(buffer)) > 0) {
             // Alternate the sequence number
             if (setToZero) {
@@ -96,7 +98,8 @@ class FileSender {
             clientSocket.receive(ack);
 
             // Verify ACK
-            if (ack.getData().toString().equals("1")) {
+            int receivedSequenceNumber = new Integer(ack.getData().toString());
+            if (receivedSequenceNumber == sequenceNumber) {
                 timer.cancel();
             } else {
                 clientSocket.send(sendPkt);
