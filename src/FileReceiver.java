@@ -11,6 +11,8 @@ class FileReceiver {
     private FileOutputStream fos;
     private BufferedOutputStream bos;
 
+    private final static int DATA_SIZE = 992; // Seq num + name + name.length + payload size
+
     public static void main(String[] args) throws Exception {
 
         // check if the number of command line argument is 1
@@ -71,8 +73,12 @@ class FileReceiver {
             long checksum = dataWrapper.getLong();
 
             // Checksum
+            byte[] verify = new byte[DATA_SIZE];
+            dataWrapper.position(0);
+            dataWrapper.get(verify, 0, DATA_SIZE);
+
             CRC32 crc = new CRC32();
-            crc.update(payload);
+            crc.update(verify);
             long calcChecksum = crc.getValue();
 
             // Verification
@@ -98,6 +104,9 @@ class FileReceiver {
             // If not valid, send ACK for previous packet
 
             checkForTermination(receivedPacket);
+
+            // Flip the boolean value
+            setToZero ^= true;
         }
     }
 
@@ -108,7 +117,7 @@ class FileReceiver {
 
         byte[] ackBuffer = buffer.array();
         DatagramPacket ack = new DatagramPacket(ackBuffer, ackBuffer.length, senderAddress, senderPort);
-        
+
         return ack;
     }
 
@@ -160,7 +169,7 @@ class FileReceiver {
         try {
             bos.write(byteArray, 0, byteArray.length);
             // DEBUG
-            //System.out.println("packet length: " + receivedPacket.getLength());
+            System.out.println("packet length: " + byteArray.length);
             bos.flush();
         } catch (Exception e){
             System.out.println("File cannot be written to output stream.");

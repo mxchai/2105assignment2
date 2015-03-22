@@ -93,12 +93,18 @@ class FileSender {
             },TIMEOUT, RE_TIMEOUT);
 
             // Wait for ACK
-            byte[] ackBuffer = new byte[1];
-            DatagramPacket ack = new DatagramPacket(ackBuffer, ackBuffer.length, serverAddress, portNumber);
+            byte[] ackBuffer = new byte[4];
+            DatagramPacket ack = receivePacket(ackBuffer, clientSocket);
             clientSocket.receive(ack);
 
+//            DatagramPacket ack = new DatagramPacket(ackBuffer, ackBuffer.length, serverAddress, portNumber);
+
+
             // Verify ACK
-            int receivedSequenceNumber = new Integer(ack.getData().toString());
+            byte[] ackByte = ack.getData();
+            ByteBuffer ackWrapper = ByteBuffer.wrap(ackByte);
+
+            int receivedSequenceNumber = ackWrapper.getInt();
             if (receivedSequenceNumber == sequenceNumber) {
                 timer.cancel();
             } else {
@@ -109,8 +115,8 @@ class FileSender {
             setToZero ^= true;
 
             // DEBUG
-            // System.out.println("packet sent " + counter + ", packet length: " + len);
-            //counter++;
+            System.out.println("packet sent " + counter + ", packet length: " + len);
+            counter++;
         }
         bis.close(); // VERY important to close, or else the received file will have extra bytes
 
@@ -121,6 +127,7 @@ class FileSender {
         }
 
         System.out.println("File transfer completed");
+        System.exit(1);
     }
 
     public byte[] createByteArray(byte[] payload, int sequenceNumber, String fileName) {
