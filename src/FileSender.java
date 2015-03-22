@@ -27,14 +27,14 @@ class FileSender {
 
     public static void main(String[] args) throws Exception {
 
-        // check if the number of command line argument is 4
-        if (args.length != 4) {
+        // check if the number of command line argument is 3
+        if (args.length != 3) {
             System.out.println("Usage: java FileSender <path/filename> "
                     + "<unreliNetPort> <rcvFileName>");
             System.exit(1);
         }
 
-        new FileSender(args[0], LOCALHOST, args[2], args[3]);
+        new FileSender(args[0], LOCALHOST, args[1], args[2]);
     }
 
     public FileSender(String fileToOpen, String host, String port, String rcvFileName) throws Exception {
