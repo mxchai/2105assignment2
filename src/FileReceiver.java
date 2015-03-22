@@ -98,7 +98,7 @@ class FileReceiver {
 
     private DatagramPacket createAck(int sequenceNumber) {
         // Init the ByteBuffer
-        ByteBuffer buffer = ByteBuffer.allocate(1);
+        ByteBuffer buffer = ByteBuffer.allocate(4);
         buffer.putInt(sequenceNumber);
 
         byte[] ackBuffer = buffer.array();
