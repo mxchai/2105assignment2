@@ -80,15 +80,13 @@ class FileReceiver {
             long checksum = wrapper.getLong();
 
             // Checksum
-//            byte[] verify = new byte[DATA_SIZE];
-//            wrapper.position(0);
-//            wrapper.get(verify);
-//
-//            CRC32 crc = new CRC32();
-//            crc.update(verify);
-//            long calcChecksum = crc.getValue();
+            byte[] verify = new byte[DATA_SIZE];
+            wrapper.position(0);
+            wrapper.get(verify);
 
-            long calcChecksum = 1;
+            CRC32 crc = new CRC32();
+            crc.update(verify);
+            long calcChecksum = crc.getValue();
 
             System.out.println("========================");
             System.out.println("INSPECTED PACKET");
