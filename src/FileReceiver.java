@@ -81,9 +81,16 @@ class FileReceiver {
             crc.update(verify);
             long calcChecksum = crc.getValue();
 
+            System.out.println(fileName);
+
+            System.out.println("Original: " + checksum);
+            System.out.println("Calculated: " + calcChecksum);
+
+
             // Verification
             // If valid
             if (checksum == calcChecksum) {
+
                 // Check if file exist
                 // If doesn't exist, create file and write to it
                 // If exists, write to it
@@ -123,6 +130,8 @@ class FileReceiver {
 
             // Flip the boolean value
             setToZero ^= true;
+
+
         }
     }
 

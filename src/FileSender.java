@@ -76,6 +76,9 @@ class FileSender {
             // Form the packet to be sent out
             final DatagramPacket sendPkt = new DatagramPacket(sendBuffer, len, serverAddress, portNumber);
 
+            // DEBUG
+//            extractDatagramData(sendPkt);
+
             // Send out the packet
             clientSocket.send(sendPkt);
 
@@ -115,7 +118,7 @@ class FileSender {
             setToZero ^= true;
 
             // DEBUG
-            System.out.println("packet sent " + counter + ", packet length: " + len);
+            System.out.println("packet sent " + counter + ", payload length: " + len);
             counter++;
         }
         bis.close(); // VERY important to close, or else the received file will have extra bytes
@@ -143,12 +146,47 @@ class FileSender {
         // Calculates checksum of payload and append to back
         byte[] data = new byte[DATA_SIZE];
         output.position(0); // move to start
+        output.get(data);
+
         CRC32 crc = new CRC32();
         crc.update(data);
         long checksum = crc.getValue();
+        output.position(DATA_SIZE);
         output.putLong(checksum);
 
+        // DEBUG
+        System.out.println("Sequence number: " + sequenceNumber);
+        System.out.println("File name: " + fileName);
+        System.out.println("File name length: " + fileName.length());
+        System.out.println("Checksum: " + checksum);
+
         return output.array();
+    }
+
+    public void extractDatagramData(DatagramPacket dp) {
+        // Declarations
+        ByteBuffer wrapper = ByteBuffer.allocate(MAX_BUFFER_SIZE);
+
+        // Wrap the byte array with ByteBuffer
+        byte[] dpData = dp.getData();
+        wrapper.wrap(dpData);
+
+        // Extracting the information
+        int receivedSequenceNumber = wrapper.getInt();
+        byte[] fileNameBytes = new byte[100];
+        wrapper.get(fileNameBytes);
+        String fileName = new String(fileNameBytes);
+
+        int fileNameLength = wrapper.getInt();
+
+        byte[] payload = new byte[PAYLOAD_SIZE];
+
+        long checksum = wrapper.getLong();
+
+        System.out.println("Sequence number: " + receivedSequenceNumber);
+        System.out.println("File name: " + fileName);
+        System.out.println("File name length: " + fileName.length());
+        System.out.println("Checksum: " + checksum);
     }
 
     private DatagramPacket receivePacket(byte[] rcvBuffer, DatagramSocket serverSocket){
